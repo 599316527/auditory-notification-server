@@ -6,7 +6,10 @@ const playSound = require('play-sound')
 const bodyParser = require('body-parser')
 
 const yargs = require('yargs')
-const argv = yargs.option('player', {alias: 'p'}).argv
+const argv = yargs
+    .option('player', {alias: 'p'})
+    .option('authkey', {alias: 'k'})
+    .argv
 
 const app = express()
 const port = process.env.PORT || 3000
@@ -19,11 +22,20 @@ if (argv.player) {
     console.log(`[INFO]\tPlayer is set to "${argv.player}" manually`);
 }
 
+if (argv.authkey) {
+    console.log(`[INFO]\tAuth key "${argv.authkey}" is required`);
+}
+
 app.use(bodyParser.json({extended: false}))
 app.use(bodyParser.urlencoded({extended: false}))
 
 app.post('/play', async (req, res) => {
-    let {name, type} = req.body
+    let {name, type, auth} = req.body
+    if (argv.authkey && auth != argv.authkey) {
+        console.log(`[INFO]\tIllegal auth key: ${auth}`)
+        res.status(403).end()
+        return
+    }
     if (!(await isAudioExist(name, type))) {
         console.log(`[WARNING]\tNot found for ${name}.${type}`)
         res.status(404).end()
